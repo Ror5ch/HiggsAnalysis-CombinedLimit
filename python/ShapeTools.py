@@ -76,11 +76,13 @@ class ShapeBuilder(ModelBuilder):
         if len(self.DC.obs) != 0: 
             self.doCombinedDataset()
     def doIndividualModels(self):
+        print("DEBUG: doIndividualModels in ShapeTools.py")
         if self.options.verbose:
             stderr.write("Creating pdfs for individual modes (%d): " % len(self.DC.bins));
             stderr.flush()
         bbb_names = []
         for i,b in enumerate(self.DC.bins):
+            print("DEBUG: {i}, {b}".format(i=i, b=b))
             #print "  + Getting model for bin %s" % (b)
             pdfs   = ROOT.RooArgList(); bgpdfs   = ROOT.RooArgList()
             coeffs = ROOT.RooArgList(); bgcoeffs = ROOT.RooArgList()
@@ -91,74 +93,96 @@ class ShapeBuilder(ModelBuilder):
             if channelBinParFlag:
                 print 'Channel %s will use autoMCStats with settings: event-threshold=%g, include-signal=%i, hist-mode=%i' % ((b,)+self.DC.binParFlags[b])
             for p in self.DC.exp[b].keys(): # so that we get only self.DC.processes contributing to this bin
+                print("DEBUG: {p}".format(p=p))
                 if self.DC.exp[b][p] == 0: continue
                 if self.physics.getYieldScale(b,p) == 0: continue # exclude really the pdf
                 #print "  +--- Getting pdf for %s in bin %s" % (p,b)
                 (pdf,coeff) = (self.getPdf(b,p), self.out.function("n_exp_bin%s_proc_%s" % (b,p)))
                 if self.options.optimizeExistingTemplates:
+                    print("DEBUG: optimizeExistingTemplates")
                     pdf1 = self.optimizeExistingTemplates(pdf)
                     if (pdf1 != pdf):
+                        print("DEBUG: dont_delete.append")
                         self.out.dont_delete.append(pdf1)
                         pdf = pdf1
+                print("DEBUG: getExtraNorm")
                 extranorm = self.getExtraNorm(b,p)
                 if extranorm:
+                    print("DEBUG: extranorm")
                     if self.options.packAsymPows:
                         if coeff.ClassName() == "ProcessNormalization":
                             pass # nothing to do
                         elif coeff.ClassName() == "RooRealVar":
+                            print("DEBUG: addObj")
                             coeff = self.addObj(ROOT.ProcessNormalization, "n_exp_final_bin%s_proc_%s" % (b,p), "", coeff.getVal())
                         else:
                             raise RuntimeError("packAsymPows: can't work with a coefficient of kind %s for %s %s" % (coeff.ClassName(), b, p))
                         for X in extranorm:
                             if type(X) == tuple:
                                 (klo, khi, syst) = X
+                                print("DEBUG: addAsymmLogNormal")
                                 coeff.addAsymmLogNormal(klo,khi, self.out.var(syst))
                             else:
                                 if self.out.function(X):
+                                    print("DEBUG: addOtherFactor function")
                                     coeff.addOtherFactor(self.out.function(X))
                                 else:
+                                    print("DEBUG: addOtherFactor getObj")
                                     coeff.addOtherFactor(self.getObj(X))
                     else:   
                         prodset = ROOT.RooArgList(self.out.function("n_exp_bin%s_proc_%s" % (b,p)))
                         for X in extranorm:
                             # X might already be in the workspace (e.g. _norm term)...
                             if self.out.function(X):
-                                    prodset.add(self.out.function(X))
+                                print("DEBUG: prodset.add function")
+                                prodset.add(self.out.function(X))
                             # ... but usually it's only in our object store (e.g. AsymPow for shape systs)
                             else:
-                    		prodset.add(self.getObj(X))
+                                print("DEBUG: prodset.add getObj")
+                                prodset.add(self.getObj(X))
+                        print("DEBUG: addObj RooProduct")
                         coeff = self.addObj(ROOT.RooProduct, "n_exp_final_bin%s_proc_%s" % (b,p), "", prodset)
+                print("DEBUG: pdf setStringAttribute setAttribute")
                 pdf.setStringAttribute("combine.process", p)
                 pdf.setStringAttribute("combine.channel", b)
                 pdf.setAttribute("combine.signal", self.DC.isSignal[p])
                 if channelBinParFlag and self.DC.isSignal[p] and not self.DC.binParFlags[b][1]:
                     pdf.setAttribute('skipForErrorSum')
+                print("DEBUG: coeff setStringAttribute setAttribute")
                 coeff.setStringAttribute("combine.process", p)
                 coeff.setStringAttribute("combine.channel", b)
                 coeff.setAttribute("combine.signal", self.DC.isSignal[p])
+                print("DEBUG: add pdf coeff")
                 pdfs.add(pdf); coeffs.add(coeff)
                 if not self.DC.isSignal[p]:
+                    print("DEBUG: bgpdfs")
                     bgpdfs.add(pdf); bgcoeffs.add(coeff)
                 else:
+                    print("DEBUG: sigcoeffs")
                     sigcoeffs.append(coeff)
             if self.options.verbose > 1: print "Creating RooAddPdf %s with %s elements" % ("pdf_bin"+b, coeffs.getSize())
             if channelBinParFlag: 
+                print("DEBUG: channelBinParFlag")
                 prop = self.addObj(ROOT.CMSHistErrorPropagator, "prop_bin%s" % b, "", pdfs.at(0).getXVar(), pdfs, coeffs)
                 prop.setAttribute('CachingPdf_Direct', True)
                 if self.DC.binParFlags[b][0] >= 0.:
+                    print("DEBUG: setupBinPars")
                     bbb_args = prop.setupBinPars(self.DC.binParFlags[b][0])
                     for bidx in range(bbb_args.getSize()):
+                        print("DEBUG: for {bidx}".fomrat(bidx=bidx))
                         arg = bbb_args.at(bidx)
                         n = arg.GetName()
                         bbb_names.append(n)
                         parname = n
                         self.out._import(arg)
                         if arg.getAttribute("createGaussianConstraint"):
+                            print("DEBUG: createGaussianConstraint")
                             self.doObj("%s_Pdf" % n, "SimpleGaussianConstraint", "%s, %s_In[0,%s], %s" % (n, n, '-7,7', '1.0'), True)
                             self.out.var(n).setVal(0)
                             self.out.var(n).setError(1)
                             if self.options.optimizeBoundNuisances: self.out.var(n).setAttribute("optimizeBounds")
                         elif arg.getAttribute("createPoissonConstraint"):
+                            print("DEBUG: createPoissonConstraint")
                             nom = arg.getVal()
                             pval = ROOT.Math.normal_cdf_c(7)
                             minObs = nom
@@ -171,27 +195,41 @@ class ShapeBuilder(ModelBuilder):
                             self.doObj("%s_Pdf" % n, "Poisson", "%s_In[%d,%f,%f], %s, 1" % (n, nom, minObs, maxObs, n))
                             if n.endswith('_prod'):
                                 parname = n[:-5]
+                        print("DEBUG: binconstraints")
                         binconstraints.add(self.out.pdf('%s_Pdf' % n))
                         self.out.var("%s_In" % n).setConstant(True)
+                        print("DEBUG: extraNuisances")
                         self.extraNuisances.append(self.out.var("%s" % parname))
+                        print("DEBUG: extraGlobalObservables")
                         self.extraGlobalObservables.append(self.out.var("%s_In" % n))
                 if not self.out.var('ONE'):
+                    print("DEBUG: doVar ONE")
                     self.doVar('ONE[1.0]')
+                print("DEBUG: addObj RooRealSumPdf")
                 sum_s = self.addObj(ROOT.RooRealSumPdf, "pdf_bin%s"       % b,  "", ROOT.RooArgList(prop),   ROOT.RooArgList(self.out.var('ONE')), True)
                 if not self.options.noBOnly:
                     if not self.out.var('ZERO'):
+                        print("DEBUG: doVar ZERO")
                         self.doVar('ZERO[0.0]')
+                    print("DEBUG: RooCustomizer")
                     customizer = ROOT.RooCustomizer(prop, "")
                     for arg in sigcoeffs:
+                        print("DEBUG: replaceArg")
                         customizer.replaceArg(arg, self.out.var('ZERO'))
+                    print("DEBUG: customizer.build")
                     prop_b = customizer.build(True)
                     if len(sigcoeffs):
                         prop_b.SetName("prop_bin%s_bonly" % b)
+                    print("DEBUG: objstore")
                     self.objstore[prop_b.GetName()] = prop_b
+                    print("DEBUG: addObj RooRealSumPdf bonly")
                     sum_b = self.addObj(ROOT.RooRealSumPdf, "pdf_bin%s_bonly"       % b,  "", ROOT.RooArgList(prop_b),   ROOT.RooArgList(self.out.var('ONE')), True)
             else:
+                print("DEBUG: addObj RooAddPdf pdf_bin")
                 sum_s = self.addObj(ROOT.RooAddPdf,"pdf_bin%s"       % b,  "",  pdfs,   coeffs)
-                if not self.options.noBOnly: sum_b = self.addObj(ROOT.RooAddPdf, "pdf_bin%s_bonly" % b, "", bgpdfs, bgcoeffs)
+                if not self.options.noBOnly: 
+                    print("DEBUG: not noBOnly addObj RooAddPdf pdf_bin_bonly")
+                    sum_b = self.addObj(ROOT.RooAddPdf, "pdf_bin%s_bonly" % b, "", bgpdfs, bgcoeffs)
             sum_s.setAttribute("MAIN_MEASUREMENT") # useful for plain ROOFIT optimization on ATLAS side
             if b in self.pdfModes: 
                 sum_s.setAttribute('forceGen'+self.pdfModes[b].title())
@@ -203,10 +241,12 @@ class ShapeBuilder(ModelBuilder):
                 if self.options.noOptimizePdf: raise RuntimeError, "--optimize-simpdf-constraints=cms is incompatible with --no-optimize-pdfs"
                 addSyst = False
             if (len(self.DC.systs) or binconstraints.getSize()) and addSyst:
+                print("DEBUG: renameObj")
                 ## rename the pdfs
                 self.renameObj("pdf_bin%s" % b, "pdf_bin%s_nuis" % b)
                 if not self.options.noBOnly:
-                	self.renameObj("pdf_bin%s_bonly" % b, "pdf_bin%s_bonly_nuis" % b)
+                    print("DEBUG: renameObj not noBOnly")
+                    self.renameObj("pdf_bin%s_bonly" % b, "pdf_bin%s_bonly_nuis" % b)
                 # now we multiply by all the nuisances, but avoiding nested products
                 # so we first make a list of all nuisances plus the RooAddPdf
                 if len(self.DC.systs):
@@ -214,9 +254,11 @@ class ShapeBuilder(ModelBuilder):
                 else:
                     sumPlusNuis_s = ROOT.RooArgList()
                 sumPlusNuis_s.add(sum_s)
+                print("DEBUG: addObj pdfbins_bin{b}".format(b=b))
                 pdf_bins = self.addObj(ROOT.RooProdPdf, 'pdfbins_bin%s' % b, "", binconstraints)
                 sumPlusNuis_s.add(pdf_bins)
                 # then make RooProdPdf and import it
+                print("DEBUG: addObj pdf_bin{b}".format(b=b))
                 pdf_s = self.addObj(ROOT.RooProdPdf, "pdf_bin%s"       % b, "", sumPlusNuis_s)
                 if not self.options.noBOnly:
                     if len(self.DC.systs):
@@ -225,6 +267,7 @@ class ShapeBuilder(ModelBuilder):
                         sumPlusNuis_b = ROOT.RooArgList()
                     sumPlusNuis_b.add(sum_b)
                     sumPlusNuis_b.add(pdf_bins)
+                    print("DEBUG: addObj pdf_bin{b}_bonly".format(b=b))
                     pdf_b = self.addObj(ROOT.RooProdPdf, "pdf_bin%s_bonly" % b, "", sumPlusNuis_b)
                 if b in self.pdfModes: 
                     pdf_s.setAttribute('forceGen'+self.pdfModes[b].title())
@@ -240,6 +283,7 @@ class ShapeBuilder(ModelBuilder):
                     stderr.flush()
             if channelBinParFlag and not self.options.noHistFuncWrappers:
                 for idx in xrange(pdfs.getSize()):
+                    print("DEBUG: wrapper")
                     wrapper = ROOT.CMSHistFuncWrapper(pdfs[idx].GetName() + '_wrapper', '', pdfs.at(idx).getXVar(), pdfs.at(idx), prop, idx)
                     wrapper.setStringAttribute("combine.process", pdfs.at(idx).getStringAttribute("combine.process"))
                     wrapper.setStringAttribute("combine.channel", pdfs.at(idx).getStringAttribute("combine.channel"))

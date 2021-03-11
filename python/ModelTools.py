@@ -88,9 +88,17 @@ class ModelBuilderBase():
         if self.options.bin: self.out.defineSet(name,vars)
         else: self.out.write("%s = set(%s);\n" % (name,vars));
     def doObj(self,name,type,X,ignoreExisting=False):
-        if self.out.obj(name) and ignoreExisting: return 1 # Still complain if not explicitly told to ignore the existing object
-        if self.options.bin: return self.factory_("%s::%s(%s)" % (type, name, X));
-        else: self.out.write("%s = %s(%s);\n" % (name, type, X))
+        print("DEBUG: doObj {name}, {type}".format(name=name, type=type))
+        if self.out.obj(name) and ignoreExisting: 
+            print("DEBUG: doObj 1")
+            return 1 # Still complain if not explicitly told to ignore the existing object
+
+        if self.options.bin:
+            print("DEBUG: doObj factory")
+            return self.factory_("%s::%s(%s)" % (type, name, X));
+        else:
+            print("DEBUG: doObj write")
+            self.out.write("%s = %s(%s);\n" % (name, type, X))
     def addDiscrete(self,var):
 	self.discrete_param_set.append(var)
 
@@ -110,7 +118,9 @@ class ModelBuilder(ModelBuilderBase):
             for p in self.DC.exp[b].keys():
                 self.physics.tellAboutProcess(b, p)
     def doModel(self, justCheckPhysicsModel=False):
-        if not justCheckPhysicsModel: self.doObservables()
+        if not justCheckPhysicsModel: 
+            print("DEBUG: doObservables")
+            self.doObservables()
         self.physics.doParametersOfInterest()
 
         # set a group attribute on POI variables
@@ -119,19 +129,29 @@ class ModelBuilder(ModelBuilderBase):
         while poi:
             self.out.var(poi.GetName()).setAttribute('group_POI',True)
             poi = poiIter.Next()
+        print("DEBUG: preProcessNuisances")
         self.physics.preProcessNuisances(self.DC.systs)
+        print("DEBUG: doNuisances")
         self.doNuisances()
-	self.doExtArgs()
-	self.doRateParams()
+        print("DEBUG: doExtArgs")
+        self.doExtArgs()
+        print("DEBUG: doRateParams")
+        self.doRateParams()
+        print("DEBUG: doExpectedEvents")
         self.doExpectedEvents()
         if justCheckPhysicsModel:
             self.physics.done()
             print "Model is OK"
             exit(0)
+        print("DEBUG: doIndividualModels")
         self.doIndividualModels()
+        print("DEBUG: doNuisancesGroups")
         self.doNuisancesGroups() # this needs to be called after both doNuisances and doIndividualModels
+        print("DEBUG: doCombination")
         self.doCombination()
-	self.runPostProcesses()
+        print("DEBUG: runPostProcesses")
+        self.runPostProcesses()
+        print("DEBUG: physics.done")
         self.physics.done()
         if self.options.bin:
             self.doModelConfigs()
@@ -578,14 +598,19 @@ class ModelBuilder(ModelBuilderBase):
     def doExpectedEvents(self):
         self.doComment(" --- Expected events in each bin, for each process ----")
         for b in self.DC.bins:
+            print("DEBUG: doExpectedEvents on {b}".format(b=b))
             for p in self.DC.exp[b].keys(): # so that we get only self.DC.processes contributing to this bin
                 # if it's a zero background, write a zero and move on
+                print("DEBUG: doExpectedEvents on {b} in {p}".format(b=b, p=p))
                 if self.DC.exp[b][p] == 0:
+                    print("DEBUG: doExpectedEvents doVar")
                     self.doVar("n_exp_bin%s_proc_%s[%g]" % (b, p, self.DC.exp[b][p]))
                     continue
                 # get model-dependent scale factor
+                print("DEBUG: doExpectedEvents getYieldScale")
                 scale = self.physics.getYieldScale(b,p)
                 if scale == 0:
+                    print("DEBUG: doExpectedEvents doVar")
                     self.doVar("n_exp_bin%s_proc_%s[%g]" % (b, p, 0))
                     continue
                 # collect multiplicative corrections
@@ -597,6 +622,7 @@ class ModelBuilder(ModelBuilderBase):
                 if scale == 1:
                     pass
                 elif type(scale) == str:
+                    print("DEBUG: doExpectedEvents factors.append")
                     factors.append(scale)
                 else:
                     raise RuntimeError, "Physics model returned something which is neither a name, nor 0, nor 1."
@@ -736,9 +762,14 @@ class CountingModelBuilder(ModelBuilder):
     def doIndividualModels(self):
         self.doComment(" --- Expected events in each bin, total (S+B and B) ----")
         for b in self.DC.bins:
+            print("DEBUG: doIndividualModels on {b}".format(b=b))
+            print("DEBUG: doIndividualModels n_exp_bin_bonly")
             self.doObj("n_exp_bin%s_bonly" % b, "sum", ", ".join(["n_exp_bin%s_proc_%s" % (b,p) for p in self.DC.exp[b].keys() if self.DC.isSignal[p] == False]) )
+            print("DEBUG: doIndividualModels n_exp_bin")
             self.doObj("n_exp_bin%s"       % b, "sum", ", ".join(["n_exp_bin%s_proc_%s" % (b,p) for p in self.DC.exp[b].keys()                        ]) )
+            print("DEBUG: doIndividualModels pdf_bin")
             self.doObj("pdf_bin%s"       % b, "Poisson", "n_obs_bin%s, n_exp_bin%s, 1"       % (b,b))
+            print("DEBUG: doIndividualModels pdf_bin_bonly")
             self.doObj("pdf_bin%s_bonly" % b, "Poisson", "n_obs_bin%s, n_exp_bin%s_bonly, 1" % (b,b))
     def doCombination(self):
         prefix = "modelObs" if len(self.DC.systs) else "model" # if no systematics, we build directly the model
