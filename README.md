@@ -22,6 +22,8 @@ scram b -j 8
 tar -xzvf datacards_fL1.tar.gz
 tar -xzvf datacards_HZZ.tar.gz
 
+ulimit -s unlimited
+
 combineCards.py htt_*.txt hzz4l_*.txt >& fL1_HTTHZZ_years.txt.cmb 
 text2workspace.py -m 125 fL1_HTTHZZ_years.txt.cmb -P HiggsAnalysis.CombinedLimit.SpinZeroStructure_FL1:hzzAnomalousCouplingsFromHistogramsNonSMEFT --PO fL1 --PO fL1Zg --PO fa2 --PO fa3 --PO fL1asPOI --PO fL1ZgasPOIrelative --PO fa2asPOIrelative --PO fa3asPOIrelative --PO allowPMF -o fL1_HTTHZZ_years.root
 ```
