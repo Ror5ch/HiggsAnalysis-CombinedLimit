@@ -744,6 +744,13 @@ class HZZAnomalousCouplingsFromHistogramsNonSMEFT(MultiSignalSpinZeroHiggs):
         "sigmaa1L1int_VBF": 2861.21349769,
         "sigmaa1L1int_ZH": 6852.307,
         "sigmaa1L1int_WH": 25302.37,
+        "sigmaL1Zg_HZZ": 5.013e-06,
+        "sigmaL1Zg_VBF": 4.9845301e-05,
+        "sigmaL1Zg_ZH": 0.021825343267033705,
+        "sigmaL1Zg_WH": 0,
+        "sigmaa1L1Zgint_VBF": 1410.5494,
+        "sigmaa1L1Zgint_ZH": 21952.490480117736,
+        "sigmaa1L1Zgint_WH": 30998.54,  
         "yield_Powheg_ggH": 5.127128e+00,
         "yield_SM_ggH": 7.937751e+01,
         "yield_BSM_ggH": 8.952848e+01,
@@ -944,21 +951,21 @@ class HZZAnomalousCouplingsFromHistogramsNonSMEFT(MultiSignalSpinZeroHiggs):
         self.modelBuilder.doVar('expr::RV_HTT("@0*@1", RV, HTT_over_HZZ)')
         self.modelBuilder.doVar('expr::RF_HTT("@0*@1", RF, HTT_over_HZZ)')
 
-        self.modelBuilder.doVar('expr::a1("sqrt(1-abs(@0))", CMS_zz4l_fai3)')
-        self.modelBuilder.doVar('expr::a3("(@0>0 ? 1 : -1) * sqrt(abs(@0)*{sigma1_HZZ}/{sigmaL1_HZZ})", CMS_zz4l_fai3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
+        self.modelBuilder.doVar('expr::a1("sqrt(1-abs(@0))", CMS_zz4l_fai4)')
+        self.modelBuilder.doVar('expr::a3("(@0>0 ? 1 : -1) * sqrt(abs(@0)*{sigma1_HZZ}/{sigmaL1Zg_HZZ})", CMS_zz4l_fai4)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
 
-        self.modelBuilder.factory_('expr::muVc("@1/(1+500.*abs(@0))", CMS_zz4l_fai3, RV_HTT)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
-        self.modelBuilder.factory_('expr::smCoupling_VBF("@0*@1**2 - @0*@1*@2*sqrt({sigmaL1_VBF}/{sigma1_VBF})", muVc,a1,a3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
-        self.modelBuilder.factory_('expr::smCoupling_ZH("@0*@1**2 - @0*@1*@2*sqrt({sigmaL1_ZH}/{sigma1_ZH})", muVc,a1,a3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
-        self.modelBuilder.factory_('expr::smCoupling_WH("@0*@1**2 - @0*@1*@2*sqrt({sigmaL1_WH}/{sigma1_WH})", muVc,a1,a3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
+        self.modelBuilder.factory_('expr::muVc("@1/(1+40.*abs(@0))", CMS_zz4l_fai4, RV_HTT)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))   
+        self.modelBuilder.factory_('expr::smCoupling_VBF("@0*@1**2 - @0*@1*@2*sqrt({sigmaL1Zg_VBF}/{sigma1_VBF})", muVc,a1,a3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
+        self.modelBuilder.factory_('expr::smCoupling_ZH("@0*@1**2 - @0*@1*@2*sqrt({sigmaL1Zg_ZH}/{sigma1_ZH})", muVc,a1,a3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
+        self.modelBuilder.factory_('expr::smCoupling_WH("@0*@1**2 - @0*@1*@2*sqrt({sigmaL1Zg_WH}/{sigma1_WH})", muVc,a1,a3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
 
-        self.modelBuilder.factory_('expr::bsmCoupling_VBF("@0*@1**2*{sigmaL1_VBF}/{sigma1_VBF} - @0*@1*@2*sqrt({sigmaL1_VBF}/{sigma1_VBF})", muVc,a3,a1)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
-        self.modelBuilder.factory_('expr::bsmCoupling_ZH("@0*@1**2*{sigmaL1_ZH}/{sigma1_ZH} - @0*@1*@2*sqrt({sigmaL1_ZH}/{sigma1_ZH})", muVc,a3,a1)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
-        self.modelBuilder.factory_('expr::bsmCoupling_WH("@0*@1**2*{sigmaL1_WH}/{sigma1_WH} - @0*@1*@2*sqrt({sigmaL1_WH}/{sigma1_WH})", muVc,a3,a1)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
+        self.modelBuilder.factory_('expr::bsmCoupling_VBF("@0*@1**2*{sigmaL1Zg_VBF}/{sigma1_VBF} - @0*@1*@2*sqrt({sigmaL1Zg_VBF}/{sigma1_VBF})", muVc,a3,a1)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
+        self.modelBuilder.factory_('expr::bsmCoupling_ZH("@0*@1**2*{sigmaL1Zg_ZH}/{sigma1_ZH} - @0*@1*@2*sqrt({sigmaL1Zg_ZH}/{sigma1_ZH})", muVc,a3,a1)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
+        self.modelBuilder.factory_('expr::bsmCoupling_WH("@0*@1**2*{sigmaL1Zg_WH}/{sigma1_WH} - @0*@1*@2*sqrt({sigmaL1Zg_WH}/{sigma1_WH})", muVc,a3,a1)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
 
-        self.modelBuilder.factory_('expr::intCoupling_VBF("@0*@1*@2*sqrt({sigmaL1_VBF}/{sigma1_VBF})*{sigmaa1L1int_VBF}/{sigma1_VBF}", muVc,a1,a3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
-        self.modelBuilder.factory_('expr::intCoupling_ZH("@0*@1*@2*sqrt({sigmaL1_ZH}/{sigma1_ZH})*{sigmaa1L1int_ZH}/{sigma1_ZH}", muVc,a1,a3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
-        self.modelBuilder.factory_('expr::intCoupling_WH("@0*@1*@2*sqrt({sigmaL1_WH}/{sigma1_WH})*{sigmaa1L1int_WH}/{sigma1_WH}", muVc,a1,a3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
+        self.modelBuilder.factory_('expr::intCoupling_VBF("@0*@1*@2*sqrt({sigmaL1Zg_VBF}/{sigma1_VBF})*{sigmaa1L1Zgint_VBF}/{sigma1_VBF}", muVc,a1,a3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
+        self.modelBuilder.factory_('expr::intCoupling_ZH("@0*@1*@2*sqrt({sigmaL1Zg_ZH}/{sigma1_ZH})*{sigmaa1L1Zgint_ZH}/{sigma1_ZH}", muVc,a1,a3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
+        self.modelBuilder.factory_('expr::intCoupling_WH("@0*@1*@2*sqrt({sigmaL1Zg_WH}/{sigma1_WH})*{sigmaa1L1Zgint_WH}/{sigma1_WH}", muVc,a1,a3)'.format(**HZZAnomalousCouplingsFromHistogramsNonSMEFT.xsecs_HTT))
 
         return pois
 
@@ -994,7 +1001,6 @@ class HZZAnomalousCouplingsFromHistogramsNonSMEFT(MultiSignalSpinZeroHiggs):
         if match and match.group("Hffpure"):
             self.useHffanomalous = True
             self.doHZZ = True
-            print("It's Hffpure")
 
     def getYieldScale(self,bin,process):
         if process in ["GGH2Jets_sm_M",]:
